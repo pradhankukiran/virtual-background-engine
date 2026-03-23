@@ -2,12 +2,9 @@ node_modules
 dist
 *.local
 
-# Models (downloaded via scripts/download-model.sh)
-public/models/*.tflite
-public/models/*.onnx
-
-# ONNX Runtime WASM files (copied from node_modules)
-public/wasm/ort
+# WASM files (downloaded at build time via scripts/download-model.sh)
+public/wasm
+public/models
 
 # Editor / OS
 .vscode

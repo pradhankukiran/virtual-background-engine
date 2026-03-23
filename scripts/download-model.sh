@@ -1,29 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODEL_DIR="$(dirname "$0")/../public/models"
-mkdir -p "$MODEL_DIR"
-
-# MODNet ONNX model (primary — portrait matting with soft hair edges)
-MODNET_URL="https://huggingface.co/gradio/Modnet/resolve/main/modnet.onnx"
-MODNET_FILE="$MODEL_DIR/modnet.onnx"
-
-if [ -f "$MODNET_FILE" ]; then
-  echo "MODNet model already exists: $MODNET_FILE"
-else
-  echo "Downloading MODNet ONNX model..."
-  curl -L -o "$MODNET_FILE" "$MODNET_URL"
-  echo "Downloaded to $MODNET_FILE ($(wc -c < "$MODNET_FILE") bytes)"
-fi
+ROOT="$(dirname "$0")/.."
+MODEL_DIR="$ROOT/public/models"
+WASM_DIR="$ROOT/public/wasm"
+mkdir -p "$MODEL_DIR" "$WASM_DIR"
 
 # MediaPipe selfie segmenter landscape (optimized for 16:9 webcam feeds)
 LANDSCAPE_URL="https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite"
 LANDSCAPE_FILE="$MODEL_DIR/selfie_segmenter_landscape.tflite"
 
 if [ -f "$LANDSCAPE_FILE" ]; then
-  echo "Landscape model already exists: $LANDSCAPE_FILE"
+  echo "Model already exists: $LANDSCAPE_FILE"
 else
   echo "Downloading selfie segmenter landscape model..."
-  curl -L -o "$LANDSCAPE_FILE" "$LANDSCAPE_URL"
-  echo "Downloaded to $LANDSCAPE_FILE ($(wc -c < "$LANDSCAPE_FILE") bytes)"
+  curl -sL -o "$LANDSCAPE_FILE" "$LANDSCAPE_URL"
+  echo "Downloaded model ($(wc -c < "$LANDSCAPE_FILE") bytes)"
 fi
+
+# MediaPipe Vision WASM files (required by @mediapipe/tasks-vision)
+MEDIAPIPE_CDN="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.33/wasm"
+WASM_FILES=(
+  vision_wasm_internal.js
+  vision_wasm_internal.wasm
+  vision_wasm_module_internal.js
+  vision_wasm_module_internal.wasm
+  vision_wasm_module_nosimd_internal.js
+  vision_wasm_module_nosimd_internal.wasm
+  vision_wasm_nosimd_internal.js
+  vision_wasm_nosimd_internal.wasm
+)
+
+for f in "${WASM_FILES[@]}"; do
+  if [ -f "$WASM_DIR/$f" ]; then
+    echo "WASM file exists: $f"
+  else
+    echo "Downloading $f..."
+    curl -sL -o "$WASM_DIR/$f" "$MEDIAPIPE_CDN/$f"
+  fi
+done
+
+echo "All assets ready."
