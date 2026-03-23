@@ -2,21 +2,21 @@
 import { onMounted, onUnmounted } from 'vue';
 import { useCamera } from './composables/useCamera';
 import { useVirtualBackground } from './composables/useVirtualBackground';
+import { useLiveKitRoom } from './composables/useLiveKitRoom';
 import { serializeError, useDiagnosticsLog } from './composables/useDiagnosticsLog';
 import VirtualBackgroundControls from './components/VirtualBackgroundControls.vue';
 import VideoPreview from './components/VideoPreview.vue';
 import PerformanceHud from './components/PerformanceHud.vue';
 import DiagnosticsPanel from './components/DiagnosticsPanel.vue';
+import LiveKitPanel from './components/LiveKitPanel.vue';
 import Message from 'primevue/message';
 import { detectCapabilities } from './utils/feature-detect';
-
 
 const {
   stream: cameraStream,
   videoTrack,
   error: cameraError,
   errorLogId: cameraErrorLogId,
-  isActive,
   start: startCameraFn,
 } = useCamera();
 
@@ -25,11 +25,19 @@ const {
   enabled, start: startVbg, stop: stopVbg, setMode, setBlurStrength,
   setBgImage, outputStream,
 } = useVirtualBackground();
-const { sessionId, entries, logInfo, logError, clearLogs, exportLogs } = useDiagnosticsLog();
 
-async function startCamera(): Promise<void> {
-  await startCameraFn();
-}
+const {
+  connected: lkConnected,
+  connecting: lkConnecting,
+  roomName: lkRoomName,
+  participantCount: lkParticipants,
+  error: lkError,
+  remoteStreams: lkRemoteStreams,
+  connect: lkConnect,
+  disconnect: lkDisconnect,
+} = useLiveKitRoom();
+
+const { sessionId, entries, logInfo, logError, clearLogs, exportLogs } = useDiagnosticsLog();
 
 async function toggleVbg(on: boolean): Promise<void> {
   if (on && videoTrack.value) {
@@ -70,18 +78,14 @@ async function copyLogs(): Promise<void> {
     logInfo({
       source: 'ui',
       message: 'Copied diagnostics log to clipboard',
-      details: {
-        entryCount: entries.value.length,
-      },
+      details: { entryCount: entries.value.length },
     });
   } catch (err) {
     logError({
       source: 'ui',
       code: 'COPY_LOGS_FAILED',
       message: 'Failed to copy diagnostics log',
-      details: {
-        rawError: serializeError(err),
-      },
+      details: { rawError: serializeError(err) },
     });
   }
 }
@@ -109,6 +113,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('error', onWindowError);
   window.removeEventListener('unhandledrejection', onUnhandledRejection);
+  lkDisconnect();
 });
 </script>
 
@@ -141,21 +146,34 @@ onUnmounted(() => {
           :enabled="enabled"
         />
 
-        <VirtualBackgroundControls
-          :enabled="enabled"
-          :mode="mode"
-          :blurStrength="blurStrength"
-          :state="state"
-          :error="vbgError"
-          :errorLogId="vbgErrorLogId"
-          :modelProgress="modelProgress"
-          :modelStage="modelStage"
-          :metrics="metrics"
-          @update:enabled="toggleVbg"
-          @update:mode="setMode"
-          @update:blurStrength="setBlurStrength"
-          @upload-image="setBgImage"
-        />
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <VirtualBackgroundControls
+            :enabled="enabled"
+            :mode="mode"
+            :blurStrength="blurStrength"
+            :state="state"
+            :error="vbgError"
+            :errorLogId="vbgErrorLogId"
+            :modelProgress="modelProgress"
+            :modelStage="modelStage"
+            :metrics="metrics"
+            @update:enabled="toggleVbg"
+            @update:mode="setMode"
+            @update:blurStrength="setBlurStrength"
+            @upload-image="setBgImage"
+          />
+
+          <LiveKitPanel
+            :connected="lkConnected"
+            :connecting="lkConnecting"
+            :roomName="lkRoomName"
+            :participantCount="lkParticipants"
+            :error="lkError"
+            :remoteStreams="lkRemoteStreams"
+            @connect="lkConnect"
+            @disconnect="lkDisconnect"
+          />
+        </div>
       </div>
 
       <DiagnosticsPanel

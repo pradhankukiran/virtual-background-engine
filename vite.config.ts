@@ -25,6 +25,8 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((_req, res, next) => {
           res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+          // 'credentialless' allows cross-origin requests (LiveKit, MediaPipe CDN)
+          // while still enabling SharedArrayBuffer
           res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
           next();
         });
