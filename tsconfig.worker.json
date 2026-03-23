@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": ["dom-webcodecs"]
+  },
+  "include": [
+    "src/pipeline/workers/*.worker.ts",
+    "src/pipeline/types.ts",
+    "src/pipeline/workers/protocol.ts",
+    "src/pipeline/compositor/*.ts",
+    "src/pipeline/mask-buffer/*.ts",
+    "src/env.d.ts"
+  ]
+}
